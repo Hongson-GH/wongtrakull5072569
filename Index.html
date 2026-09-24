@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ขับจรวดหนีอุกกาบาตมันๆซิ่งๆ | Fast Space Rocket Escape & Astronomy Puzzle</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font Inter & Kanit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                        cyber: ['Orbitron', 'sans-serif']
+                    },
+                    colors: {
+                        spaceBg: '#0a0a12',
+                        crimson: {
+                            400: '#ff4d79',
+                            500: '#ff2a5f',
+                            600: '#d91244',
+                            700: '#990028'
+                        },
+                        cyberGold: '#ffd700',
+                        neonCyan: '#00f3ff',
+                        neonPurple: '#b026ff'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Space Effects & Scrollbars */
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            background-color: #0a0a12;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        .glow-text-red {
+            text-shadow: 0 0 12px rgba(255, 42, 95, 0.8), 0 0 24px rgba(255, 42, 95, 0.4);
+        }
+        .glow-text-gold {
+            text-shadow: 0 0 12px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        .glow-box-red {
+            box-shadow: 0 0 20px rgba(255, 42, 95, 0.4), inset 0 0 15px rgba(255, 42, 95, 0.2);
+        }
+        .glow-box-cyan {
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4), inset 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+        .glass-panel {
+            background: rgba(15, 15, 28, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        /* Mobile Touch D-Pad styling */
+        .dpad-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+            active: background-color: rgba(255, 42, 95, 0.6);
+        }
+        .dpad-btn:active {
+            background: rgba(255, 42, 95, 0.5);
+            transform: scale(0.95);
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="h-full w-full relative font-sans flex flex-col justify-between items-center select-none overflow-hidden">
+
+    <!-- Top Bar Navigation / Controls -->
+    <header class="w-full max-w-6xl mx-auto px-4 py-2 z-20 flex justify-between items-center pointer-events-auto">
+        <div class="flex items-center gap-2">
+            <span class="text-2xl">🚀</span>
+            <h1 class="font-cyber text-lg sm:text-xl font-extrabold tracking-wider bg-gradient-to-r from-crimson-400 via-cyberGold to-neonCyan bg-clip-text text-transparent">
+                ASTRO PUZZLE
+            </h1>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Language Switcher -->
+            <button id="langToggleBtn" class="glass-panel px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-1.5 hover:border-crimson-500 transition-all">
+                <span id="langFlag">🇹🇭</span>
+                <span id="langText">TH</span>
+            </button>
+
+            <!-- Sound Toggle -->
+            <button id="soundToggleBtn" class="glass-panel p-2 rounded-full text-xs sm:text-sm hover:border-cyberGold transition-all flex items-center justify-center w-9 h-9">
+                <span id="soundIcon">🔊</span>
+            </button>
+
+            <!-- High Score Indicator -->
+            <div class="glass-panel px-3 py-1 rounded-full text-xs sm:text-sm hidden sm:flex items-center gap-1">
+                <span class="text-cyberGold">🏆</span>
+                <span data-i18n="highScore">สถิติสูงสุด:</span>
+                <span id="topBarHighScore" class="font-cyber font-bold text-cyberGold">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Screen Area -->
+    <main class="relative w-full flex-1 flex justify-center items-center overflow-hidden">
+        <!-- Canvas Element -->
+        <canvas id="gameCanvas" class="absolute inset-0 w-full h-full block bg-spaceBg z-0"></canvas>
+
+        <!-- In-Game Canvas HUD Overlay -->
+        <div id="hudOverlay" class="absolute inset-x-0 top-0 max-w-5xl mx-auto p-4 z-10 flex flex-col gap-2 pointer-events-none hidden">
+            <!-- Status Row 1: Hearts, Score, Buster Charge -->
+            <div class="flex justify-between items-center bg-black/40 backdrop-filter backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+                <!-- Hearts -->
+                <div class="flex items-center gap-1">
+                    <span id="heartContainer" class="text-xl sm:text-2xl tracking-widest">❤️❤️❤️</span>
+                </div>
+
+                <!-- Buster Charge Gauge -->
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-cyber text-neonCyan font-bold hidden sm:inline" data-i18n="busterLabel">BUSTER LASER</span>
+                    <div class="w-24 sm:w-36 h-3 bg-gray-900 rounded-full border border-neonCyan/40 overflow-hidden p-0.5">
+                        <div id="busterBar" class="h-full bg-gradient-to-r from-neonCyan to-cyberGold rounded-full transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Score Counter -->
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] uppercase tracking-wider text-gray-400" data-i18n="score">คะแนน</span>
+                    <span id="scoreDisplay" class="font-cyber text-xl sm:text-2xl font-black text-cyberGold glow-text-gold">0</span>
+                </div>
+            </div>
+
+            <!-- Status Row 2: Level Progress / Boss Arrival Gauge -->
+            <div class="w-full bg-black/40 backdrop-filter backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/10 flex items-center gap-3">
+                <span class="text-xs font-cyber text-crimson-400 font-semibold whitespace-nowrap flex items-center gap-1">
+                    <span>🛸</span> <span id="progressLabelText" data-i18n="bossProgress">ระยะทางพบบอส:</span>
+                </span>
+                <div class="flex-1 h-2.5 bg-gray-900 rounded-full border border-crimson-500/30 overflow-hidden">
+                    <div id="bossProgressBar" class="h-full bg-gradient-to-r from-crimson-600 via-crimson-400 to-cyberGold rounded-full transition-all duration-300" style="width: 0%;"></div>
+                </div>
+                <span id="bossProgressPercent" class="text-xs font-cyber text-cyberGold font-bold">0%</span>
+            </div>
+
+            <!-- Boss Health Bar (Hidden until Boss Phase) -->
+            <div id="bossHealthContainer" class="w-full bg-red-950/80 backdrop-filter backdrop-blur-md p-2 rounded-xl border border-crimson-500 flex flex-col gap-1 hidden animate-pulse-glow">
+                <div class="flex justify-between items-center text-xs font-cyber font-bold text-crimson-400 px-1">
+                    <span data-i18n="alienBossTitle">⚠️ บอสเอเลี่ยนต่างดาว (BIG ALIEN BOSS)</span>
+                    <span id="bossHealthPercent">100%</span>
+                </div>
+                <div class="w-full h-4 bg-gray-950 rounded-full border border-crimson-500 overflow-hidden p-0.5">
+                    <div id="bossHealthBar" class="h-full bg-gradient-to-r from-red-600 via-crimson-500 to-yellow-400 rounded-full transition-all duration-200" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Virtual Controls (Shown on Touch / Small Screens) -->
+        <div id="mobileControls" class="absolute inset-x-0 bottom-4 px-6 z-10 flex justify-between items-end pointer-events-auto sm:hidden hidden">
+            <!-- D-Pad Grid -->
+            <div class="grid grid-cols-3 gap-2 w-36 h-36">
+                <div></div>
+                <button id="btnUp" class="dpad-btn rounded-xl flex items-center justify-center text-xl font-bold text-white">▲</button>
+                <div></div>
+                <button id="btnLeft" class="dpad-btn rounded-xl flex items-center justify-center text-xl font-bold text-white">◄</button>
+                <div class="flex items-center justify-center text-xs text-gray-500 font-cyber">MOVE</div>
+                <button id="btnRight" class="dpad-btn rounded-xl flex items-center justify-center text-xl font-bold text-white">►</button>
+                <div></div>
+                <button id="btnDown" class="dpad-btn rounded-xl flex items-center justify-center text-xl font-bold text-white">▼</button>
+                <div></div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col gap-3">
+                <button id="btnBuster" class="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-600 to-neonCyan border-2 border-white/50 text-white font-cyber font-bold text-xs flex flex-col items-center justify-center shadow-lg active:scale-95 transition-all">
+                    <span>⚡</span>
+                    <span data-i18n="btnBuster">SUPER</span>
+                </button>
+                <button id="btnFire" class="w-20 h-20 rounded-full bg-gradient-to-tr from-crimson-700 to-crimson-500 border-2 border-white/80 text-white font-cyber font-bold text-sm flex flex-col items-center justify-center shadow-lg active:scale-95 transition-all glow-box-red">
+                    <span>🔥</span>
+                    <span data-i18n="btnShoot">ยิง</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Start Game & Skin Selection Screen Modal -->
+        <div id="startModal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto">
+            <div class="glass-panel w-full max-w-2xl rounded-3xl p-6 sm:p-8 border border-crimson-500/40 glow-box-red flex flex-col gap-6 max-h-[90vh] overflow-y-auto">
+                <!-- Title Header -->
+                <div class="text-center flex flex-col items-center gap-2">
+                    <span class="text-4xl sm:text-5xl animate-bounce">🚀</span>
+                    <h2 class="text-2xl sm:text-4xl font-black font-cyber bg-gradient-to-r from-crimson-400 via-cyberGold to-neonCyan bg-clip-text text-transparent glow-text-red" data-i18n="gameTitle">
+                        ขับจรวดหนีอุกกาบาตมันๆซิ่งๆ
+                    </h2>
+                    <p class="text-xs sm:text-sm text-gray-300 max-w-md" data-i18n="gameSubtitle">
+                        การผจญภัยในอวกาศแนวอาเขตผสมปริศนาดาราศาสตร์ หลบหลีกสะเก็ดดาว ตอบคำถามเก็บพลาสม่า แล้วถล่มบอสเอเลี่ยน!
+                    </p>
+                </div>
+
+                <!-- Rocket Skin Selector -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs sm:text-sm font-semibold text-cyberGold flex items-center gap-1.5" data-i18n="selectSkinTitle">
+                        <span>🎨</span> เลือกสกินยานอวกาศของคุณ (Select Rocket Skin):
+                    </label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="skinSelectorGrid">
+                        <!-- Skin Cards generated dynamically in JS -->
+                    </div>
+                </div>
+
+                <!-- Controls & How to Play Guide -->
+                <div class="bg-black/50 p-4 rounded-2xl border border-white/10 text-xs sm:text-sm text-gray-300 flex flex-col gap-2">
+                    <div class="font-bold text-neonCyan flex items-center gap-1" data-i18n="howToPlayTitle">
+                        <span>🎮</span> วิธีการเล่น (How to Play):
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 text-gray-300 text-xs">
+                        <li data-i18n="guideControls">บังคับยานด้วยปุ่ม <b>W / A / S / D</b> หรือ <b>ปุ่มลูกศร</b> (มือถือใช้ปุ่มบนหน้าจอ)</li>
+                        <li data-i18n="guideShoot">ยิงเลเซอร์ด้วย <b>Spacebar</b> หรือ <b>ปุ่มคลิก/ยิง</b></li>
+                        <li data-i18n="guidePuzzle">ยิง <b>พ็อดข้อมูลดาราศาสตร์ (Data Pod)</b> เพื่อเปิดมินิเกมตอบคำถาม (ดาวเคราะห์, ดาวฤกษ์, กาแล็กซี, กลุ่มดาว)</li>
+                        <li data-i18n="guideBuster">ตอบถูกจะเพิ่มเลือด, คะแนนคูณ 2 และชาร์จพลัง <b>Buster Laser</b> สำหรับถล่มบอสเอเลี่ยน!</li>
+                    </ul>
+                </div>
+
+                <!-- Action Button -->
+                <button id="startGameBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-crimson-600 via-crimson-500 to-cyberGold text-white font-cyber font-black text-lg sm:text-xl tracking-wider hover:brightness-125 transition-all shadow-xl active:scale-98 border border-white/30 glow-box-red flex items-center justify-center gap-2">
+                    <span>⚡</span> <span data-i18n="btnStart">เริ่มเกมขับจรวดซิ่ง</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Astronomy Puzzle Modal Overlay -->
+        <div id="puzzleModal" class="absolute inset-0 z-40 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg pointer-events-auto hidden">
+            <div class="glass-panel w-full max-w-lg rounded-3xl p-6 border-2 border-neonCyan glow-box-cyan flex flex-col gap-5 animate-pulse-glow">
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🪐</span>
+                        <span class="font-cyber font-bold text-neonCyan text-sm sm:text-base" data-i18n="puzzleModalHeader">ปริศนาดาราศาสตร์ (ASTRONOMY PUZZLE)</span>
+                    </div>
+                    <!-- Quiz Timer -->
+                    <div class="flex items-center gap-1 bg-neonCyan/20 px-3 py-1 rounded-full border border-neonCyan/50">
+                        <span class="text-xs">⏳</span>
+                        <span id="quizTimerText" class="font-cyber text-neonCyan font-bold text-sm">15s</span>
+                    </div>
+                </div>
+
+                <!-- Question Text -->
+                <div class="text-center py-2">
+                    <span id="quizCategoryBadge" class="inline-block px-3 py-1 rounded-full bg-cyberGold/20 border border-cyberGold text-cyberGold text-xs font-bold mb-2">
+                        ดาวเคราะห์ / Planet
+                    </span>
+                    <h3 id="quizQuestionText" class="text-base sm:text-xl font-bold text-white leading-relaxed">
+                        ดวงอาทิตย์ (The Sun) จัดอยู่ในประเภทใดของวัตถุท้องฟ้า?
+                    </h3>
+                </div>
+
+                <!-- Options Grid -->
+                <div id="quizOptionsContainer" class="grid grid-cols-1 gap-3">
+                    <!-- Option buttons dynamically generated -->
+                </div>
+
+                <!-- Immediate Answer Feedback Box -->
+                <div id="quizFeedbackBox" class="hidden p-3 rounded-xl text-center text-xs sm:text-sm font-bold border flex flex-col gap-1">
+                    <span id="quizFeedbackTitle" class="text-base"></span>
+                    <span id="quizFeedbackDesc" class="text-gray-300 font-normal"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary / Game Over Screen Modal -->
+        <div id="summaryModal" class="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl pointer-events-auto hidden">
+            <div class="glass-panel w-full max-w-md rounded-3xl p-6 sm:p-8 border border-crimson-500/50 glow-box-red flex flex-col gap-6 text-center">
+                <!-- Result Icon & Title -->
+                <div class="flex flex-col items-center gap-2">
+                    <span id="summaryIcon" class="text-6xl animate-bounce">🏆</span>
+                    <h2 id="summaryTitle" class="text-2xl sm:text-3xl font-cyber font-black bg-gradient-to-r from-cyberGold to-crimson-400 bg-clip-text text-transparent">
+                        ภารกิจสำเร็จ! VICTORY!
+                    </h2>
+                    <p id="summarySubtitle" class="text-xs text-gray-300">คุณสามารถพิชิตอวกาศและถล่มบอสเอเลี่ยนได้สำเร็จ!</p>
+                </div>
+
+                <!-- Statistics Grid -->
+                <div class="grid grid-cols-2 gap-3 bg-black/60 p-4 rounded-2xl border border-white/10 text-xs sm:text-sm">
+                    <div class="flex flex-col p-2 bg-white/5 rounded-xl">
+                        <span class="text-gray-400" data-i18n="finalScore">คะแนนสุทธิ</span>
+                        <span id="summaryFinalScore" class="font-cyber text-lg sm:text-xl font-bold text-cyberGold">0</span>
+                    </div>
+                    <div class="flex flex-col p-2 bg-white/5 rounded-xl">
+                        <span class="text-gray-400" data-i18n="highScore">สถิติสูงสุด</span>
+                        <span id="summaryHighScore" class="font-cyber text-lg sm:text-xl font-bold text-neonCyan">0</span>
+                    </div>
+                    <div class="flex flex-col p-2 bg-white/5 rounded-xl">
+                        <span class="text-gray-400" data-i18n="accuracy">ความแม่นยำปริศนา</span>
+                        <span id="summaryAccuracy" class="font-cyber text-lg sm:text-xl font-bold text-green-400">0%</span>
+                    </div>
+                    <div class="flex flex-col p-2 bg-white/5 rounded-xl">
+                        <span class="text-gray-400" data-i18n="timeElapsed">เวลาที่ใช้</span>
+                        <span id="summaryTime" class="font-cyber text-lg sm:text-xl font-bold text-purple-400">00:00</span>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button id="restartGameBtn" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-crimson-600 to-crimson-400 text-white font-cyber font-bold text-sm hover:brightness-125 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-1">
+                        <span>🔄</span> <span data-i18n="btnPlayAgain">เล่นอีกครั้ง</span>
+                    </button>
+                    <button id="mainMenuBtn" class="flex-1 py-3 rounded-2xl glass-panel text-gray-200 font-cyber font-bold text-sm hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-1">
+                        <span>🏠</span> <span data-i18n="btnMenu">หน้าหลัก</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Credit -->
+    <footer class="w-full text-center py-2 text-[10px] text-gray-500 font-cyber z-20 pointer-events-auto">
+        ASTRONOMY PUZZLE ARCADE • HTML5 VANILLA JS • GITHUB PAGES READY
+    </footer>
+
+    <script>
+        // Game Configuration & State
+        const CONFIG = {
+            canvasWidth: 800,
+            canvasHeight: 900,
+            playerSpeed: 7,
+            bulletSpeed: 12,
+            bossMaxHealth: 1000,
+            puzzleProgressReward: 20
+        };
+
+        // Rocket Skins Database
+        const SKINS = {
+            crimson: {
+                id: 'crimson',
+                name: { th: 'พยัคฆ์ชาด (Crimson Viper)', en: 'Crimson Viper' },
+                color: '#ff2a5f',
+                glow: '#ff4d79',
+                trail: '#d91244',
+                bulletColor: '#ff2a5f',
+                icon: '🚀'
+            },
+            solar: {
+                id: 'solar',
+                name: { th: 'สุริยะเปลวเพลิง (Solar Flare)', en: 'Solar Flare' },
+                color: '#ffd700',
+                glow: '#ffaa00',
+                trail: '#ff6600',
+                bulletColor: '#ffd700',
+                icon: '☀️'
+            },
+            cyber: {
+                id: 'cyber',
+                name: { th: 'นีออนไซเบอร์ (Cyber Neon)', en: 'Cyber Neon' },
+                color: '#00f3ff',
+                glow: '#00aaff',
+                trail: '#b026ff',
+                bulletColor: '#00f3ff',
+                icon: '⚡'
+            },
+            dark: {
+                id: 'dark',
+                name: { th: 'สสารมืด (Dark Matter)', en: 'Dark Matter' },
+                color: '#b026ff',
+                glow: '#e066ff',
+                trail: '#4b0082',
+                bulletColor: '#e066ff',
+                icon: '🌌'
+            }
+        };
+
+        // Bilingual Translations Dictionary
+        const TRANSLATIONS = {
+            th: {
+                gameTitle: "ขับจรวดหนีอุกกาบาตมันๆซิ่งๆ",
+                gameSubtitle: "การผจญภัยในอวกาศแนวอาเขตผสมปริศนาดาราศาสตร์ หลบหลีกสะเก็ดดาว ตอบคำถามเก็บพลาสม่า แล้วถล่มบอสเอเลี่ยน!",
+                highScore: "สถิติสูงสุด:",
+                score: "คะแนน",
+                bossProgress: "ระยะทางพบบอส:",
+                busterLabel: "BUSTER LASER",
+                selectSkinTitle: "เลือกสกินยานอวกาศของคุณ:",
+                howToPlayTitle: "วิธีการเล่น:",
+                guideControls: "บังคับยานด้วยปุ่ม W / A / S / D หรือ ปุ่มลูกศร (มือถือใช้ปุ่มบนหน้าจอ)",
+                guideShoot: "ยิงเลเซอร์ด้วย Spacebar หรือ ปุ่มยิง",
+                guidePuzzle: "ยิง พ็อดข้อมูลดาราศาสตร์ (Data Pod) เพื่อเปิดมินิเกมตอบคำถาม (ดาวเคราะห์, ดาวฤกษ์, กาแล็กซี, กลุ่มดาว)",
+                guideBuster: "ตอบถูกจะเพิ่มเลือด, คะแนนคูณ 2 และชาร์จพลัง Buster Laser สำหรับถล่มบอสเอเลี่ยน!",
+                btnStart: "เริ่มเกมขับจรวดซิ่ง",
+                btnShoot: "ยิง",
+                btnBuster: "SUPER",
+                puzzleModalHeader: "ปริศนาดาราศาสตร์ (ASTRONOMY PUZZLE)",
+                alienBossTitle: "⚠️ บอสเอเลี่ยนต่างดาว (BIG ALIEN BOSS)",
+                finalScore: "คะแนนสุทธิ",
+                accuracy: "ความแม่นยำปริศนา",
+                timeElapsed: "เวลาที่ใช้",
+                btnPlayAgain: "เล่นอีกครั้ง",
+                btnMenu: "หน้าหลัก",
+                victoryTitle: "ภารกิจสำเร็จ! VICTORY!",
+                victorySub: "คุณสามารถพิชิตอวกาศและถล่มบอสเอเลี่ยนได้สำเร็จ!",
+                defeatTitle: "ยานถูกทำลาย! GAME OVER",
+                defeatSub: "จรวดของคุณทนต่อความเสียหายไม่ไหว ลองใหม่อีกครั้ง!",
+                correctFeedback: "ถูกต้องสุดยอด! +500 คะแนน & ชาร์จพลัง BUSTER!",
+                wrongFeedback: "ตอบผิดนิดเดียว! ลองศึกษาทบทวนความรู้ดาราศาสตร์ดูนะ"
+            },
+            en: {
+                gameTitle: "Fast Space Rocket Escape",
+                gameSubtitle: "Arcade space action mixed with astronomy puzzles! Dodge asteroids, answer questions for plasma ammo, and destroy the Big Boss!",
+                highScore: "High Score:",
+                score: "SCORE",
+                bossProgress: "BOSS DISTANCE:",
+                busterLabel: "BUSTER LASER",
+                selectSkinTitle: "Select Your Rocket Skin:",
+                howToPlayTitle: "How to Play:",
+                guideControls: "Move rocket using W / A / S / D or Arrow Keys (Touch D-Pad on Mobile)",
+                guideShoot: "Fire Lasers with Spacebar or Fire Button",
+                guidePuzzle: "Shoot Celestial Data Pods to open Astronomy Puzzles (Planets, Stars, Galaxies, Constellations)",
+                guideBuster: "Correct answers grant +1 Health, 2x Multiplier, and charge your Super Buster Laser!",
+                btnStart: "LAUNCH ROCKET GAME",
+                btnShoot: "FIRE",
+                btnBuster: "SUPER",
+                puzzleModalHeader: "ASTRONOMY PUZZLE",
+                alienBossTitle: "⚠️ BIG ALIEN BOSS",
+                finalScore: "Final Score",
+                accuracy: "Puzzle Accuracy",
+                timeElapsed: "Time Elapsed",
+                btnPlayAgain: "Play Again",
+                btnMenu: "Main Menu",
+                victoryTitle: "MISSION ACCOMPLISHED! VICTORY!",
+                victorySub: "You mastered astronomy and vanquished the Alien Boss!",
+                defeatTitle: "ROCKET DESTROYED! GAME OVER",
+                defeatSub: "Your spaceship sustained critical damage. Try again!",
+                correctFeedback: "EXCELLENT! +500 PTS & BUSTER CHARGED!",
+                wrongFeedback: "INCORRECT! Keep practicing astronomy facts!"
+            }
+        };
+
+        // Comprehensive Astronomy Quiz Database
+        const QUIZ_QUESTIONS = [
+            {
+                category: { th: "ดาวฤกษ์ / Star", en: "Star" },
+                question: {
+                    th: "ดวงอาทิตย์ (The Sun) จัดอยู่ในประเภทใดของวัตถุท้องฟ้า?",
+                    en: "What type of celestial object is The Sun?"
+                },
+                options: {
+                    th: ["ดาวฤกษ์ (Star)", "ดาวเคราะห์ (Planet)", "กาแล็กซี (Galaxy)", "กลุ่มดาว (Constellation)"],
+                    en: ["Star", "Planet", "Galaxy", "Constellation"]
+                },
+                correct: 0,
+                explanation: {
+                    th: "ดวงอาทิตย์เป็นดาวฤกษ์ดวงเดียวในระบบสุริยะของเรา มีแสงสว่างและความร้อนในตัวเอง!",
+                    en: "The Sun is the only star in our solar system, producing its own light and heat!"
+                }
+            },
+            {
+                category: { th: "ดาวเคราะห์ / Planet", en: "Planet" },
+                question: {
+                    th: "ดาวเคราะห์ดวงใดในระบบสุริยะที่มีวงแหวนขนาดใหญ่และสวยงามโดดเด่นที่สุด?",
+                    en: "Which planet in our solar system is famous for its prominent, majestic rings?"
+                },
+                options: {
+                    th: ["ดาวพฤหัสบดี (Jupiter)", "ดาวเสาร์ (Saturn)", "ดาวอังคาร (Mars)", "ดาวศุกร์ (Venus)"],
+                    en: ["Jupiter", "Saturn", "Mars", "Venus"]
+                },
+                correct: 1,
+                explanation: {
+                    th: "ดาวเสาร์เป็นดาวเคราะห์แก๊สยักษ์ที่มีวงแหวนจากก้อนน้ำแข็งและหินโดดเด่นที่สุด!",
+                    en: "Saturn is a gas giant best known for its extensive ring system made of ice and rock!"
+                }
+            },
+            {
+                category: { th: "กาแล็กซี / Galaxy", en: "Galaxy" },
+                question: {
+                    th: "ระบบสุริยะและโลกของเราตั้งอยู่ในกาแล็กซีที่มีชื่อว่าอะไร?",
+                    en: "What is the name of the galaxy that contains our Solar System and Earth?"
+                },
+                options: {
+                    th: ["กาแล็กซีทางช้างเผือก (Milky Way)", "กาแล็กซีแอนดรอเมดา (Andromeda)", "กาแล็กซีสามเหลี่ยม (Triangulum)", "กาแล็กซีหมวกปีก (Sombrero)"],
+                    en: ["Milky Way Galaxy", "Andromeda Galaxy", "Triangulum Galaxy", "Sombrero Galaxy"]
+                },
+                correct: 0,
+                explanation: {
+                    th: "พวกเราอาศัยอยู่ในกาแล็กซีทางช้างเผือก (Milky Way) ซึ่งเป็นกาแล็กซีกังหันมีกังหันก้าน!",
+                    en: "We live in the Milky Way Galaxy, a barred spiral galaxy!"
+                }
+            },
+            {
+                category: { th: "กลุ่มดาว / Constellation", en: "Constellation" },
+                question: {
+                    th: "กลุ่มดาวใดที่มีจุดสังเกตเด่นคือ 'เข็มขัดนายพราน' (ดาวเรียงกัน 3 ดวง)?",
+                    en: "Which constellation features the famous asterism 'Orion's Belt' (3 aligned stars)?"
+                },
+                options: {
+                    th: ["กลุ่มดาวหมีใหญ่ (Ursa Major)", "กลุ่มดาวแมงป่อง (Scorpius)", "กลุ่มดาวนายพราน (Orion)", "กลุ่มดาวแคสสิโอเปีย (Cassiopeia)"],
+                    en: ["Ursa Major", "Scorpius", "Orion", "Cassiopeia"]
+                },
+                correct: 2,
+                explanation: {
+                    th: "กลุ่มดาวนายพราน (Orion) มีดาวเรียงกัน 3 ดวงตรงกลางที่เป็นเข็มขัด สังเกตได้ง่ายในท้องฟ้าฤดูหนาว!",
+                    en: "Orion contains three prominent stars in a row forming the Orion's Belt!"
+                }
+            },
+            {
+                category: { th: "ดาวเคราะห์ / Planet", en: "Planet" },
+                question: {
+                    th: "ดาวเคราะห์ดวงใดได้ฉายาว่า 'ดาวเคราะห์สีแดง' (The Red Planet)?",
+                    en: "Which planet is commonly known as 'The Red Planet'?"
+                },
+                options: {
+                    th: ["ดาวพุธ (Mercury)", "ดาวศุกร์ (Venus)", "ดาวอังคาร (Mars)", "ดาวเนปจูน (Neptune)"],
+                    en: ["Mercury", "Venus", "Mars", "Neptune"]
+                },
+                correct: 2,
+                explanation: {
+                    th: "ดาวอังคารมีสีแดงเนื่องจากมีแร่เหล็กออกไซด์ (สนิมเหล็ก) ปริมาณมากบนพื้นผิว!",
+                    en: "Mars appears red due to iron oxide (rust) widespread on its surface!"
+                }
+            },
+            {
+                category: { th: "ดาวเคราะห์ / Planet", en: "Planet" },
+                question: {
+                    th: "ดาวเคราะห์ดวงใดมีขนาดใหญ่ที่สุดในระบบสุริยะของเรา?",
+                    en: "Which planet is the largest in our solar system?"
+                },
+                options: {
+                    th: ["ดาวพฤหัสบดี (Jupiter)", "ดาวเสาร์ (Saturn)", "ดาวยูเรนัส (Uranus)", "โลก (Earth)"],
+                    en: ["Jupiter", "Saturn", "Uranus", "Earth"]
+                },
+                correct: 0,
+                explanation: {
+                    th: "ดาวพฤหัสบดีเป็นดาวเคราะห์ยักษ์ที่มีมวลมากกว่าดาวเคราะห์ดวงอื่นรวมกันเสียอีก!",
+                    en: "Jupiter is the massive gas giant with more mass than all other planets combined!"
+                }
+            },
+            {
+                category: { th: "ดาวฤกษ์ / Star", en: "Star" },
+                question: {
+                    th: "ดาวเหนือ (Polaris) มีความสำคัญอย่างไรต่อการเดินทางและระบุทิศ?",
+                    en: "Why is Polaris (The North Star) important for navigation?"
+                },
+                options: {
+                    th: ["ชี้ไปทางทิศเหนือเสมอ", "ชี้ไปทางทิศใต้เสมอ", "เป็นดาวที่สว่างที่สุดในจักรวาล", "เป็นดาวเคราะห์หิน"],
+                    en: ["Always points towards True North", "Always points South", "Brightest star in universe", "It is a rocky planet"]
+                },
+                correct: 0,
+                explanation: {
+                    th: "ดาวเหนืออยู่เกือบตรงกับแกนหมุนของโลกทางขั้วโลกเหนือ จึงใช้ระบุทิศเหนือได้แม่นยำ!",
+                    en: "Polaris lies nearly aligned with Earth's northern axis of rotation, pointing North!"
+                }
+            },
+            {
+                category: { th: "กาแล็กซี / Galaxy", en: "Galaxy" },
+                question: {
+                    th: "กาแล็กซีขนาดใหญ่ที่อยู่ใกล้กาแล็กซีทางช้างเผือกของเรามากที่สุดคือข้อใด?",
+                    en: "Which major galaxy is nearest to our Milky Way Galaxy?"
+                },
+                options: {
+                    th: ["กาแล็กซีแอนดรอเมดา (Andromeda)", "กาแล็กซีหมวกปีก (Sombrero)", "กาแล็กซีน้ำวน (Whirlpool)", "กาแล็กซีดวงตาปีศาจ (Black Eye)"],
+                    en: ["Andromeda Galaxy", "Sombrero Galaxy", "Whirlpool Galaxy", "Black Eye Galaxy"]
+                },
+                correct: 0,
+                explanation: {
+                    th: "กาแล็กซีแอนดรอเมดา (M31) อยู่ห่างออกไปราว 2.5 ล้านปีแสง และกำลังเคลื่อนที่เข้าหากาแล็กซีเรา!",
+                    en: "The Andromeda Galaxy (M31) is our closest major galactic neighbor about 2.5 million light-years away!"
+                }
+            }
+        ];
+
+        // Web Audio API Synthesizer (No External Files Needed)
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+            }
+
+            playLaser() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                } catch(e){}
+            }
+
+            playBuster() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.4);
+                } catch(e){}
+            }
+
+            playExplosion() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.3);
+                } catch(e){}
+            }
+
+            playCorrect() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major Arpeggio
+                    notes.forEach((freq, i) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.value = freq;
+                        const startTime = this.ctx.currentTime + (i * 0.08);
+                        gain.gain.setValueAtTime(0.2, startTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.2);
+                    });
+                } catch(e){}
+            }
+
+            playWrong() {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(140, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.3);
+                } catch(e){}
+            }
+        }
+
+        const audio = new AudioEngine();
+
+        // Global Runtime Variables
+        let currentLang = localStorage.getItem('space_game_lang') || 'th';
+        let currentSkinId = localStorage.getItem('space_game_skin') || 'crimson';
+        let highScore = parseInt(localStorage.getItem('space_game_highscore')) || 0;
+
+        let gameState = 'MENU'; // MENU, PLAYING, PUZZLE, BOSS, GAMEOVER, VICTORY
+        let score = 0;
+        let hearts = 3;
+        let busterCharge = 0; // 0 to 100
+        let bossProgress = 0; // 0 to 100
+        let bossHealth = CONFIG.bossMaxHealth;
+        let gameTimer = 0;
+        let startTime = 0;
+        let questionsAsked = 0;
+        let questionsCorrect = 0;
+        let activeQuiz = null;
+        let quizTimerInterval = null;
+        let quizTimeLeft = 15;
+
+        // Input Controls
+        const keys = {
+            w: false, a: false, s: false, d: false,
+            ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false,
+            Space: false
+        };
+
+        // Canvas & World Entities
+        let canvas, ctx;
+        let player = null;
+        let stars = [];
+        let bullets = [];
+        let bossBullets = [];
+        let meteors = [];
+        let dataPods = [];
+        let particles = [];
+        let boss = null;
+        let lastShootTime = 0;
+
+        // Player Rocket Class
+        class RocketPlayer {
+            constructor(x, y, skin) {
+                this.x = x;
+                this.y = y;
+                this.width = 44;
+                this.height = 54;
+                this.skin = skin;
+                this.vx = 0;
+                this.vy = 0;
+            }
+
+            update() {
+                // Movement Logic
+                let dx = 0;
+                let dy = 0;
+                if (keys.w || keys.ArrowUp) dy -= 1;
+                if (keys.s || keys.ArrowDown) dy += 1;
+                if (keys.a || keys.ArrowLeft) dx -= 1;
+                if (keys.d || keys.ArrowRight) dx += 1;
+
+                // Normalize diagonal movement speed
+                if (dx !== 0 && dy !== 0) {
+                    dx *= 0.7071;
+                    dy *= 0.7071;
+                }
+
+                this.x += dx * CONFIG.playerSpeed;
+                this.y += dy * CONFIG.playerSpeed;
+
+                // Screen Boundaries Clamp
+                this.x = Math.max(this.width / 2, Math.min(canvas.width - this.width / 2, this.x));
+                this.y = Math.max(this.height / 2, Math.min(canvas.height - this.height / 2, this.y));
+
+                // Engine Thrust Particles
+                if (Math.random() < 0.6) {
+                    particles.push(new Particle(
+                        this.x + (Math.random() - 0.5) * 12,
+                        this.y + this.height / 2,
+                        (Math.random() - 0.5) * 1.5,
+                        Math.random() * 3 + 2,
+                        this.skin.trail,
+                        Math.random() * 4 + 3,
+                        20
+                    ));
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Glow Effect
+                ctx.shadowColor = this.skin.glow;
+                ctx.shadowBlur = 15;
+
+                // Main Body Shape
+                ctx.fillStyle = this.skin.color;
+                ctx.beginPath();
+                ctx.moveTo(0, -this.height / 2); // Nose
+                ctx.lineTo(this.width / 2, this.height / 2); // Right Wing Tip
+                ctx.lineTo(this.width / 4, this.height / 3); // Right Inner
+                ctx.lineTo(-this.width / 4, this.height / 3); // Left Inner
+                ctx.lineTo(-this.width / 2, this.height / 2); // Left Wing Tip
+                ctx.closePath();
+                ctx.fill();
+
+                // Cockpit Glass Window
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, -this.height / 6, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Twin Cannons
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillRect(-this.width / 2.2, -5, 4, 16);
+                ctx.fillRect(this.width / 2.2 - 4, -5, 4, 16);
+
+                ctx.restore();
+            }
+        }
+
+        // Particle FX Class
+        class Particle {
+            constructor(x, y, vx, vy, color, size, maxLife) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.size = size;
+                this.life = 0;
+                this.maxLife = maxLife;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life++;
+            }
+
+            draw() {
+                const alpha = 1 - (this.life / this.maxLife);
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Asteroid / Meteor Class
+        class Meteor {
+            constructor() {
+                this.radius = Math.random() * 18 + 16;
+                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+                this.y = -this.radius * 2;
+                this.speed = Math.random() * 2.5 + 2;
+                this.vx = (Math.random() - 0.5) * 1.2;
+                this.rotation = 0;
+                this.rotSpeed = (Math.random() - 0.5) * 0.05;
+                this.hp = Math.floor(this.radius / 10);
+                
+                // Create random polygon shape points
+                this.vertices = [];
+                const numVerts = Math.floor(Math.random() * 4) + 6;
+                for (let i = 0; i < numVerts; i++) {
+                    const angle = (i / numVerts) * Math.PI * 2;
+                    const dist = this.radius * (0.75 + Math.random() * 0.35);
+                    this.vertices.push({ x: Math.cos(angle) * dist, y: Math.sin(angle) * dist });
+                }
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.speed;
+                this.rotation += this.rotSpeed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                ctx.strokeStyle = '#94a3b8';
+                ctx.fillStyle = '#334155';
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(this.vertices[0].x, this.vertices[0].y);
+                for (let i = 1; i < this.vertices.length; i++) {
+                    ctx.lineTo(this.vertices[i].x, this.vertices[i].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        // Celestial Data Pod (Triggers Astronomy Quiz Modal)
+        class DataPod {
+            constructor() {
+                this.radius = 22;
+                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+                this.y = -this.radius * 2;
+                this.speed = 2;
+                this.angle = 0;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.angle += 0.04;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.shadowColor = '#00f3ff';
+                ctx.shadowBlur = 18;
+
+                // Glowing Orb
+                ctx.fillStyle = '#00f3ff';
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Rotating Orbital Ring
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.radius + 6, (this.radius + 6) * Math.sin(this.angle), this.angle, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Planet / Star Symbol
+                ctx.fillStyle = '#0a0a12';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🪐', 0, 0);
+
+                ctx.restore();
+            }
+        }
+
+        // Alien Big Boss Class
+        class AlienBoss {
+            constructor() {
+                this.width = 160;
+                this.height = 100;
+                this.x = canvas.width / 2;
+                this.y = -this.height;
+                this.targetY = 120;
+                this.vx = 3;
+                this.shootTimer = 0;
+            }
+
+            update() {
+                // Move in from top
+                if (this.y < this.targetY) {
+                    this.y += 2;
+                } else {
+                    // Hover left-right
+                    this.x += this.vx;
+                    if (this.x < this.width / 2 + 20 || this.x > canvas.width - this.width / 2 - 20) {
+                        this.vx *= -1;
+                    }
+                }
+
+                // Bullet Attack Patterns
+                this.shootTimer++;
+                if (this.shootTimer % 45 === 0) {
+                    // Bullet curtain pattern
+                    for (let angle = -0.4; angle <= 0.4; angle += 0.2) {
+                        bossBullets.push({
+                            x: this.x,
+                            y: this.y + this.height / 2,
+                            vx: Math.sin(angle) * 5,
+                            vy: Math.cos(angle) * 5 + 2,
+                            radius: 6
+                        });
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                ctx.shadowColor = '#ff2a5f';
+                ctx.shadowBlur = 25;
+
+                // Alien Saucer Body
+                ctx.fillStyle = '#990028';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.width / 2, this.height / 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Dome
+                ctx.fillStyle = '#00f3ff';
+                ctx.beginPath();
+                ctx.arc(0, -10, this.width / 4, Math.PI, 0);
+                ctx.fill();
+
+                // Eyeball
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, -15, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ff2a5f';
+                ctx.beginPath();
+                ctx.arc(0, -15, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Glowing Orbs around rim
+                const t = Date.now() * 0.005;
+                for (let i = -3; i <= 3; i++) {
+                    ctx.fillStyle = i % 2 === 0 ? '#ffd700' : '#00f3ff';
+                    ctx.beginPath();
+                    ctx.arc(i * 22, 12, 5 + Math.sin(t + i) * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Initialize Input Controllers
+        function initInputs() {
+            // Keyboard Listeners
+            window.addEventListener('keydown', (e) => {
+                if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) {
+                    keys[e.key] = true;
+                    keys[e.code] = true;
+                }
+                if (e.code === 'Space' && gameState === 'PLAYING') {
+                    shootLaser();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) {
+                    keys[e.key] = false;
+                    keys[e.code] = false;
+                }
+            });
+
+            // Mobile Touch D-Pad Binding Function
+            const bindTouchBtn = (btnId, keyName) => {
+                const btn = document.getElementById(btnId);
+                if (!btn) return;
+                
+                const startFunc = (e) => {
+                    e.preventDefault();
+                    keys[keyName] = true;
+                };
+                const endFunc = (e) => {
+                    e.preventDefault();
+                    keys[keyName] = false;
+                };
+
+                btn.addEventListener('touchstart', startFunc, { passive: false });
+                btn.addEventListener('touchend', endFunc, { passive: false });
+                btn.addEventListener('mousedown', startFunc);
+                btn.addEventListener('mouseup', endFunc);
+            };
+
+            bindTouchBtn('btnUp', 'w');
+            bindTouchBtn('btnDown', 's');
+            bindTouchBtn('btnLeft', 'a');
+            bindTouchBtn('btnRight', 'd');
+
+            // Fire Buttons
+            const btnFire = document.getElementById('btnFire');
+            if (btnFire) {
+                btnFire.addEventListener('touchstart', (e) => { e.preventDefault(); shootLaser(); }, { passive: false });
+                btnFire.addEventListener('click', () => shootLaser());
+            }
+
+            const btnBuster = document.getElementById('btnBuster');
+            if (btnBuster) {
+                btnBuster.addEventListener('touchstart', (e) => { e.preventDefault(); shootBuster(); }, { passive: false });
+                btnBuster.addEventListener('click', () => shootBuster());
+            }
+
+            // Click canvas to fire laser
+            canvas.addEventListener('click', () => {
+                if (gameState === 'PLAYING' || gameState === 'BOSS') {
+                    shootLaser();
+                }
+            });
+        }
+
+        // Skin Selector UI Render
+        function renderSkinSelector() {
+            const grid = document.getElementById('skinSelectorGrid');
+            grid.innerHTML = '';
+
+            Object.values(SKINS).forEach((skin) => {
+                const isSelected = skin.id === currentSkinId;
+                const card = document.createElement('div');
+                card.className = `glass-panel p-3 rounded-2xl cursor-pointer flex flex-col items-center gap-2 border transition-all ${
+                    isSelected ? 'border-cyberGold glow-box-cyan bg-white/10 scale-105' : 'border-white/10 hover:border-white/40'
+                }`;
+                card.onclick = () => {
+                    currentSkinId = skin.id;
+                    localStorage.setItem('space_game_skin', skin.id);
+                    renderSkinSelector();
+                };
+
+                card.innerHTML = `
+                    <span class="text-3xl">${skin.icon}</span>
+                    <span class="text-xs font-bold text-center text-gray-200">${skin.name[currentLang]}</span>
+                    <span class="w-3 h-3 rounded-full" style="background-color: ${skin.color}"></span>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Apply Language Localization across DOM
+        function updateLocalization() {
+            const langData = TRANSLATIONS[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach((el) => {
+                const key = el.getAttribute('data-i18n');
+                if (langData[key]) {
+                    el.textContent = langData[key];
+                }
+            });
+
+            document.getElementById('langFlag').textContent = currentLang === 'th' ? '🇹🇭' : '🇬🇧';
+            document.getElementById('langText').textContent = currentLang.toUpperCase();
+            document.getElementById('topBarHighScore').textContent = highScore;
+
+            renderSkinSelector();
+        }
+
+        // Player Laser Fire
+        function shootLaser() {
+            if (gameState !== 'PLAYING' && gameState !== 'BOSS') return;
+            const now = Date.now();
+            if (now - lastShootTime < 180) return; // Cooldown
+            lastShootTime = now;
+
+            const skin = SKINS[currentSkinId];
+            bullets.push({
+                x: player.x - 14,
+                y: player.y - player.height / 2,
+                vy: -CONFIG.bulletSpeed,
+                color: skin.bulletColor,
+                isBuster: false
+            });
+            bullets.push({
+                x: player.x + 14,
+                y: player.y - player.height / 2,
+                vy: -CONFIG.bulletSpeed,
+                color: skin.bulletColor,
+                isBuster: false
+            });
+
+            audio.playLaser();
+        }
+
+        // Super Buster Fire
+        function shootBuster() {
+            if ((gameState !== 'PLAYING' && gameState !== 'BOSS') || busterCharge < 100) return;
+            
+            busterCharge = 0;
+            updateHUD();
+
+            bullets.push({
+                x: player.x,
+                y: player.y - player.height / 2,
+                vy: -CONFIG.bulletSpeed * 1.3,
+                color: '#00f3ff',
+                isBuster: true,
+                radius: 20
+            });
+
+            audio.playBuster();
+        }
+
+        // Trigger Astronomy Quiz Popup
+        function triggerQuizModal() {
+            gameState = 'PUZZLE';
+            questionsAsked++;
+
+            // Pick random question from database
+            const randomIdx = Math.floor(Math.random() * QUIZ_QUESTIONS.length);
+            activeQuiz = QUIZ_QUESTIONS[randomIdx];
+
+            const modal = document.getElementById('puzzleModal');
+            const catBadge = document.getElementById('quizCategoryBadge');
+            const qText = document.getElementById('quizQuestionText');
+            const optionsContainer = document.getElementById('quizOptionsContainer');
+            const feedbackBox = document.getElementById('quizFeedbackBox');
+
+            catBadge.textContent = activeQuiz.category[currentLang];
+            qText.textContent = activeQuiz.question[currentLang];
+            feedbackBox.classList.add('hidden');
+
+            optionsContainer.innerHTML = '';
+            activeQuiz.options[currentLang].forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full py-3 px-4 rounded-xl glass-panel text-left text-xs sm:text-sm font-semibold hover:border-neonCyan hover:bg-neonCyan/10 transition-all border border-white/20 flex items-center justify-between";
+                btn.innerHTML = `<span>${idx + 1}. ${opt}</span> <span class="text-xs text-gray-400">➔</span>`;
+                btn.onclick = () => submitQuizAnswer(idx);
+                optionsContainer.appendChild(btn);
+            });
+
+            quizTimeLeft = 15;
+            document.getElementById('quizTimerText').textContent = `${quizTimeLeft}s`;
+            modal.classList.remove('hidden');
+
+            if (quizTimerInterval) clearInterval(quizTimerInterval);
+            quizTimerInterval = setInterval(() => {
+                quizTimeLeft--;
+                document.getElementById('quizTimerText').textContent = `${quizTimeLeft}s`;
+                if (quizTimeLeft <= 0) {
+                    clearInterval(quizTimerInterval);
+                    submitQuizAnswer(-1); // Timeout wrong answer
+                }
+            }, 1000);
+        }
+
+        // Process Quiz Answer Selection
+        function submitQuizAnswer(selectedIdx) {
+            if (quizTimerInterval) clearInterval(quizTimerInterval);
+
+            const isCorrect = selectedIdx === activeQuiz.correct;
+            const feedbackBox = document.getElementById('quizFeedbackBox');
+            const feedbackTitle = document.getElementById('quizFeedbackTitle');
+            const feedbackDesc = document.getElementById('quizFeedbackDesc');
+
+            feedbackBox.classList.remove('hidden');
+            if (isCorrect) {
+                questionsCorrect++;
+                score += 500;
+                busterCharge = Math.min(100, busterCharge + 50);
+                hearts = Math.min(3, hearts + 1); // Heal heart
+                audio.playCorrect();
+
+                feedbackBox.className = "p-3 rounded-xl text-center text-xs sm:text-sm font-bold border border-green-500 bg-green-950/80 text-green-300 flex flex-col gap-1";
+                feedbackTitle.textContent = TRANSLATIONS[currentLang].correctFeedback;
+            } else {
+                audio.playWrong();
+                feedbackBox.className = "p-3 rounded-xl text-center text-xs sm:text-sm font-bold border border-red-500 bg-red-950/80 text-red-300 flex flex-col gap-1";
+                feedbackTitle.textContent = TRANSLATIONS[currentLang].wrongFeedback;
+            }
+
+            feedbackDesc.textContent = activeQuiz.explanation[currentLang];
+
+            // Resume game after short delay
+            setTimeout(() => {
+                document.getElementById('puzzleModal').classList.add('hidden');
+                gameState = bossProgress >= 100 ? 'BOSS' : 'PLAYING';
+                updateHUD();
+            }, 2200);
+        }
+
+        // HUD UI Refresh
+        function updateHUD() {
+            // Hearts
+            const heartStr = '❤️'.repeat(hearts) + '🖤'.repeat(Math.max(0, 3 - hearts));
+            document.getElementById('heartContainer').textContent = heartStr;
+
+            // Score & Buster
+            document.getElementById('scoreDisplay').textContent = score;
+            document.getElementById('busterBar').style.width = `${busterCharge}%`;
+
+            // Progress Bar
+            document.getElementById('bossProgressBar').style.width = `${bossProgress}%`;
+            document.getElementById('bossProgressPercent').textContent = `${Math.floor(bossProgress)}%`;
+
+            // Boss Health
+            if (boss) {
+                const bossHpPct = Math.max(0, Math.floor((bossHealth / CONFIG.bossMaxHealth) * 100));
+                document.getElementById('bossHealthBar').style.width = `${bossHpPct}%`;
+                document.getElementById('bossHealthPercent').textContent = `${bossHpPct}%`;
+            }
+        }
+
+        // Initialize / Reset Game
+        function startGame() {
+            audio.init();
+            score = 0;
+            hearts = 3;
+            busterCharge = 0;
+            bossProgress = 0;
+            bossHealth = CONFIG.bossMaxHealth;
+            gameTimer = 0;
+            startTime = Date.now();
+            questionsAsked = 0;
+            questionsCorrect = 0;
+
+            bullets = [];
+            bossBullets = [];
+            meteors = [];
+            dataPods = [];
+            particles = [];
+            boss = null;
+
+            player = new RocketPlayer(canvas.width / 2, canvas.height - 100, SKINS[currentSkinId]);
+
+            // Hide Modals, Show HUD
+            document.getElementById('startModal').classList.add('hidden');
+            document.getElementById('summaryModal').classList.add('hidden');
+            document.getElementById('hudOverlay').classList.remove('hidden');
+            document.getElementById('bossHealthContainer').classList.add('hidden');
+
+            // Show mobile controls on small touch screens
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.getElementById('mobileControls').classList.remove('hidden');
+            }
+
+            gameState = 'PLAYING';
+            updateHUD();
+        }
+
+        // Trigger Game Over / Victory Summary Modal
+        function endGame(isVictory) {
+            gameState = isVictory ? 'VICTORY' : 'GAMEOVER';
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('space_game_highscore', highScore);
+                document.getElementById('topBarHighScore').textContent = highScore;
+            }
+
+            const elapsedSecs = Math.floor((Date.now() - startTime) / 1000);
+            const mins = Math.floor(elapsedSecs / 60).toString().padStart(2, '0');
+            const secs = (elapsedSecs % 60).toString().padStart(2, '0');
+            const accuracyPct = questionsAsked > 0 ? Math.round((questionsCorrect / questionsAsked) * 100) : 100;
+
+            document.getElementById('summaryIcon').textContent = isVictory ? '🏆' : '💥';
+            document.getElementById('summaryTitle').textContent = isVictory ? TRANSLATIONS[currentLang].victoryTitle : TRANSLATIONS[currentLang].defeatTitle;
+            document.getElementById('summarySubtitle').textContent = isVictory ? TRANSLATIONS[currentLang].victorySub : TRANSLATIONS[currentLang].defeatSub;
+
+            document.getElementById('summaryFinalScore').textContent = score;
+            document.getElementById('summaryHighScore').textContent = highScore;
+            document.getElementById('summaryAccuracy').textContent = `${accuracyPct}%`;
+            document.getElementById('summaryTime').textContent = `${mins}:${secs}`;
+
+            document.getElementById('hudOverlay').classList.add('hidden');
+            document.getElementById('summaryModal').classList.remove('hidden');
+        }
+
+        // Main Game Frame Logic
+        function updateGame() {
+            if (gameState === 'PLAYING' || gameState === 'BOSS') {
+                player.update();
+
+                // Spawning Meteors
+                if (Math.random() < 0.03) {
+                    meteors.push(new Meteor());
+                }
+
+                // Spawning Astronomy Data Pods
+                if (gameState === 'PLAYING' && Math.random() < 0.008 && dataPods.length === 0) {
+                    dataPods.push(new DataPod());
+                }
+
+                // Advance Level Progress towards Boss Arrival
+                if (gameState === 'PLAYING') {
+                    bossProgress = Math.min(100, bossProgress + 0.05);
+                    if (bossProgress >= 100) {
+                        gameState = 'BOSS';
+                        boss = new AlienBoss();
+                        document.getElementById('bossHealthContainer').classList.remove('hidden');
+                    }
+                }
+
+                // Update Boss
+                if (boss) {
+                    boss.update();
+                }
+
+                // Update Player Bullets
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const b = bullets[i];
+                    b.y += b.vy;
+
+                    // Bullet vs Boss collision
+                    if (boss && Math.hypot(b.x - boss.x, b.y - boss.y) < boss.width / 2) {
+                        const dmg = b.isBuster ? 150 : 15;
+                        bossHealth -= dmg;
+                        score += 50;
+
+                        // Explosion FX
+                        for (let k = 0; k < 6; k++) {
+                            particles.push(new Particle(b.x, b.y, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, '#ff2a5f', 3, 15));
+                        }
+
+                        bullets.splice(i, 1);
+                        if (bossHealth <= 0) {
+                            endGame(true);
+                            return;
+                        }
+                        continue;
+                    }
+
+                    // Bullet vs Meteors collision
+                    for (let j = meteors.length - 1; j >= 0; j--) {
+                        const m = meteors[j];
+                        if (Math.hypot(b.x - m.x, b.y - m.y) < m.radius + (b.radius || 4)) {
+                            score += 100;
+                            busterCharge = Math.min(100, busterCharge + 5);
+                            audio.playExplosion();
+
+                            // Particles
+                            for (let k = 0; k < 8; k++) {
+                                particles.push(new Particle(m.x, m.y, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, '#94a3b8', 4, 20));
+                            }
+
+                            meteors.splice(j, 1);
+                            if (!b.isBuster) bullets.splice(i, 1);
+                            break;
+                        }
+                    }
+
+                    // Bullet vs Data Pod collision
+                    for (let j = dataPods.length - 1; j >= 0; j--) {
+                        const pod = dataPods[j];
+                        if (Math.hypot(b.x - pod.x, b.y - pod.y) < pod.radius + 6) {
+                            dataPods.splice(j, 1);
+                            if (!b.isBuster) bullets.splice(i, 1);
+                            triggerQuizModal();
+                            return;
+                        }
+                    }
+
+                    // Remove offscreen bullets
+                    if (b.y < -20) bullets.splice(i, 1);
+                }
+
+                // Update Boss Bullets vs Player
+                for (let i = bossBullets.length - 1; i >= 0; i--) {
+                    const bb = bossBullets[i];
+                    bb.x += bb.vx;
+                    bb.y += bb.vy;
+
+                    if (Math.hypot(bb.x - player.x, bb.y - player.y) < player.width / 2) {
+                        hearts--;
+                        bossBullets.splice(i, 1);
+                        audio.playExplosion();
+                        if (hearts <= 0) {
+                            endGame(false);
+                            return;
+                        }
+                    } else if (bb.y > canvas.height + 20) {
+                        bossBullets.splice(i, 1);
+                    }
+                }
+
+                // Update Meteors vs Player
+                for (let i = meteors.length - 1; i >= 0; i--) {
+                    const m = meteors[i];
+                    m.update();
+
+                    if (Math.hypot(m.x - player.x, m.y - player.y) < m.radius + player.width / 3) {
+                        hearts--;
+                        meteors.splice(i, 1);
+                        audio.playExplosion();
+                        if (hearts <= 0) {
+                            endGame(false);
+                            return;
+                        }
+                    } else if (m.y > canvas.height + 50) {
+                        meteors.splice(i, 1);
+                    }
+                }
+
+                // Update Data Pods
+                for (let i = dataPods.length - 1; i >= 0; i--) {
+                    const pod = dataPods[i];
+                    pod.update();
+                    if (pod.y > canvas.height + 50) {
+                        dataPods.splice(i, 1);
+                    }
+                }
+
+                updateHUD();
+            }
+
+            // Update Starfield
+            stars.forEach((s) => {
+                s.y += s.speed;
+                if (s.y > canvas.height) {
+                    s.y = 0;
+                    s.x = Math.random() * canvas.width;
+                }
+            });
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                if (p.life >= p.maxLife) particles.splice(i, 1);
+            }
+        }
+
+        // Canvas Scene Render
+        function renderGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Starfield Background
+            stars.forEach((s) => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw Meteors
+            meteors.forEach((m) => m.draw());
+
+            // Draw Celestial Data Pods
+            dataPods.forEach((pod) => pod.draw());
+
+            // Draw Boss
+            if (boss) boss.draw();
+
+            // Draw Player Bullets
+            bullets.forEach((b) => {
+                ctx.save();
+                ctx.fillStyle = b.color;
+                ctx.shadowColor = b.color;
+                ctx.shadowBlur = b.isBuster ? 20 : 8;
+                ctx.beginPath();
+                if (b.isBuster) {
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                } else {
+                    ctx.fillRect(b.x - 3, b.y, 6, 16);
+                }
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Draw Boss Bullets
+            bossBullets.forEach((bb) => {
+                ctx.save();
+                ctx.fillStyle = '#ff2a5f';
+                ctx.shadowColor = '#ff2a5f';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(bb.x, bb.y, bb.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Draw Particles
+            particles.forEach((p) => p.draw());
+
+            // Draw Rocket Player
+            if (player && (gameState === 'PLAYING' || gameState === 'BOSS' || gameState === 'PUZZLE')) {
+                player.draw();
+            }
+        }
+
+        // Game Animation Loop
+        function gameLoop() {
+            updateGame();
+            renderGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Responsive Canvas Resizing
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (player) {
+                player.x = Math.min(player.x, canvas.width - 30);
+                player.y = Math.min(player.y, canvas.height - 30);
+            }
+        }
+
+        // Initialize Background Starfield
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 120; i++) {
+                stars.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    size: Math.random() * 2 + 0.5,
+                    speed: Math.random() * 1.5 + 0.5,
+                    alpha: Math.random() * 0.8 + 0.2
+                });
+            }
+        }
+
+        // Window Load Handler
+        window.onload = function () {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                initStars();
+            });
+
+            resizeCanvas();
+            initStars();
+            initInputs();
+            updateLocalization();
+
+            // Language Switcher Listener
+            document.getElementById('langToggleBtn').onclick = () => {
+                currentLang = currentLang === 'th' ? 'en' : 'th';
+                localStorage.setItem('space_game_lang', currentLang);
+                updateLocalization();
+            };
+
+            // Sound Toggle Listener
+            document.getElementById('soundToggleBtn').onclick = () => {
+                audio.enabled = !audio.enabled;
+                document.getElementById('soundIcon').textContent = audio.enabled ? '🔊' : '🔇';
+            };
+
+            // Start & Restart Buttons
+            document.getElementById('startGameBtn').onclick = startGame;
+            document.getElementById('restartGameBtn').onclick = startGame;
+            document.getElementById('mainMenuBtn').onclick = () => {
+                document.getElementById('summaryModal').classList.add('hidden');
+                document.getElementById('startModal').classList.remove('hidden');
+                gameState = 'MENU';
+            };
+
+            // Start Loop
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
